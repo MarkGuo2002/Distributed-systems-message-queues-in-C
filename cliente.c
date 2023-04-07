@@ -12,6 +12,7 @@ int main(){
     
     printf("result init() = %d\n", init());
     
+   /*
     printf("Hello after init from client\n");
     //insert normal data
     printf("result setvalue(normal) = %d\n",set_value(1, "hi", 9, 3.9));
@@ -53,6 +54,6 @@ int main(){
     printf("result copy_key(key1 and key2 do exist) = %d\n", copy_key(1, 3));
     
     printf("result init() = %d\n", init());
-
+*/
 return 0;
 }

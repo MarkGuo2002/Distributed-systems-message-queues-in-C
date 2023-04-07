@@ -1,9 +1,11 @@
 #include "common.h"
 #include "claves.h"
+#include "lines.h"
+#include <netdb.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <mqueue.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -13,53 +15,94 @@
 
 
 int init(){
-    mqd_t queue_server;
-    mqd_t queue_client;
-    struct request request;
-    struct reply reply;
-    struct mq_attr attr;
-    //initialize the client queue and the server queue
-    attr.mq_maxmsg = 1;
-    attr.mq_msgsize = sizeof(struct reply);
+    printf("init()\n");
+    int sd;
+        struct sockaddr_in server_addr;
+        struct hostent *hp;
+
+// 1.-Create socket for client
+        sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (sd < 0){
+                perror("Error in socket");
+                exit(1);
+        }
+        char *ip;
+        char *portEnv;
+        ip = getenv("IP_TUPLAS");
+        if (ip == NULL){
+                perror("IP_TUPLAS not found\n");
+                exit(1);
+        }
+        hp = gethostbyname (ip);
+        portEnv = getenv("PORT_TUPLAS");
+        if (portEnv == NULL){
+                perror("PORT_TUPLAS not found\n");
+                exit(1);
+        }
+        int port = atoi(portEnv);
+        printf("Env read, ip: %s, port: %d\n", ip, port);
     
-    
-    char queue_name[MAX];
-    sprintf(queue_name, "/CLIENTE_%d\n", getpid());
 
-    queue_client = mq_open(queue_name, O_CREAT|O_RDONLY, 0700, &attr);
-    if (queue_client == -1){
-        perror("Error creating client queue\n");
-        return -1;
-    }
-    queue_server = mq_open("/SERVIDOR", O_WRONLY);
-    if (queue_server == -1){
-        perror("Error opening server queue\n");
-        return -1;
-    }
-    //filling sending request to server...
-    strcpy(request.q_name, queue_name);
-    request.op = 0;
-    printf("Trying to send request...\n");
-    //mq_send(mdq_t mqdes, char *msg_ptr, size_t msg_len, unsigned msg_prio)
-    if (mq_send(queue_server, (char *) &request, sizeof(request), 0) < 0){
-        printf("Error sending message: %s\n", strerror(errno));
-        return -1;
-    }
+	// Obtain Server address 
+        bzero((char *)&server_addr, sizeof(server_addr));
+        //gethostbyname() is used to obtain the IP address of the hostname of the server, which in this case would be localhost
+        //gethostname obtains the the name of current host instead
 
+        /*
+        struct hostent {
+                char    *h_name;        // official name of host
+                char    **h_aliases;    // alias list
+                int     h_addrtype;     // host address type
+                int     h_length;       // length of address
+                char    **h_addr_list;  // list of addresses
+        }*/
+        if (hp == NULL) {
+                perror("Error en gethostbyname");
+                exit(1);
+        }
 
-    if (mq_receive(queue_client, (char *) &reply, sizeof(reply), 0) < 0){
-        perror("Error receiving request from server from Claves.c\n");
-        return -1;
-    }
+        /*
+        struct sockaddr_in {
+                short   sin_family;
+                u_short sin_port;
+                struct  in_addr sin_addr; this determines the IP address
+                char    sin_zero[8];
+        };*/
+	memcpy (&(server_addr.sin_addr), hp->h_addr, hp->h_length);
+        server_addr.sin_family = AF_INET;
+        //htons converts a port number in host byte order to a port number in network byte order
+        server_addr.sin_port = htons(port);
 
-    mq_close(queue_client);
-    mq_close(queue_server);
-    mq_unlink(queue_name);
-    
-    if(reply.success == 0){
-        return -1;
-    }
-    return 0;
+	// Complete.....
+//2.- Connect to the server
+        printf("Connecting to server...\n");
+        if (connect(sd, (struct sockaddr *)&server_addr, sizeof(server_addr))<0){
+                perror("Error in connect");
+                exit(1);
+        }
+        printf("Connected to server\n");
+
+//void parseRequest(char *buf, int *request_op, int *request_key, int *request_key2, char *request_value1, int *request_value2, double *request_value3) {
+//receives a string like: "2,3,5,hello,5,2.5" 6 tokens
+        char buf[MAX];
+        strcpy(buf, "1");   
+        if (sendMessage(sd, buf, sizeof(buf)+1) < 0) {
+            perror("Error sending message");
+            exit(1);
+        }
+        printf("enviado: %s\n", buf);
+        //receive message from server using recvMessage
+//        if (recvMessage(sd, buf, MAX_LINE) < 0) {
+  //         perror("Error receiving message"); 
+    //        exit(1);
+        //}
+        //printf("recibido: %s\n", buf);
+        
+
+        close(sd);
+        
+        return(0);
+
     }
 
 int set_value(int key, char* value1, int value2, double value3){
@@ -69,57 +112,7 @@ int set_value(int key, char* value1, int value2, double value3){
 
 int get_value(int key, char* value1, int *value2, double *value3){
     //the values are returned to the pointers, 
-    mqd_t queue_server;
-    mqd_t queue_client;
-    struct request request;
-    struct reply reply;
-    struct mq_attr attr;
-    //set the values of the key
-    attr.mq_maxmsg = 1;
-    attr.mq_msgsize = sizeof(struct reply);
-    
-    
-    char queue_name[MAX];
-    sprintf(queue_name, "/CLIENTE_%d\n", getpid());
 
-    queue_client = mq_open(queue_name, O_CREAT|O_RDONLY, 0700, &attr);
-    if (queue_client == -1){
-        perror("Error creating client queue\n");
-        return -1;
-    }
-
-    queue_server = mq_open("/SERVIDOR", O_WRONLY);
-    if (queue_server == -1){
-        perror("Error opening server queue\n");
-        return -1;
-    }
-    //filling sending request to server...
-    strcpy(request.q_name, queue_name);
-    request.op = 2;
-    request.key = key;
-
-    //mq_send(mdq_t mqdes, char *msg_ptr, size_t msg_len, unsigned msg_prio)
-    if (mq_send(queue_server, (char *) &request, sizeof(request), 0) < 0){
-        printf("Error sending message: %s\n", strerror(errno));
-        return -1;
-    }
-
-    if (mq_receive(queue_client, (char *) &reply, sizeof(reply), 0) < 0){
-        perror("Error receiving request from server from Claves.c\n");
-        return -1;
-    }
-
-    mq_close(queue_client);
-    mq_close(queue_server);
-    mq_unlink(queue_name);
-
-
-    if(reply.success == 0){
-        return -1;
-    }
-    strcpy(value1, reply.value1);
-    *value2 = reply.value2;
-    *value3 = reply.value3;
     return 0;
     }
 

@@ -1,6 +1,10 @@
 #include "servidor.h"
 #include "common.h"
-
+#include "lines.h"
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,174 +20,110 @@ char s_value1[MAX];
 int s_value2;
 double s_value3;
 
-mqd_t queue_server;
-pthread_mutex_t mutex_request;
-int request_not_copied = 1;
-pthread_cond_t cond_request;
+int request_op;
+int request_key;
+int request_key2;
+char request_value1[MAX];
+int request_value2;
+double request_value3;
 
-void treat_request(struct request *request){
-    struct request request_copy;
-    pthread_mutex_lock(&mutex_request);
-    request_copy = *request;
-    request_not_copied = 0;
-    pthread_cond_signal(&cond_request);
-    pthread_mutex_unlock(&mutex_request);
+//pthread_mutex_t mutex_request;
+//int request_not_copied = 1;
+//pthread_cond_t cond_request;
 
-
-    mqd_t queue_cliente;
-    struct reply reply;
-    queue_cliente = mq_open(request_copy.q_name, O_WRONLY);
-    if(queue_cliente==-1){
-        perror("Error opening client queue in proxy.c\n");
-        }
-    switch(request_copy.op){
+void treat_request(char *buf){
+    char bufCopy[MAX];
+    //pthread_mutex_lock(&mutex_request);
+    //request_copy = *request;
+    strcpy(bufCopy, buf);
+    //request_not_copied = 0;
+    //pthread_cond_signal(&cond_request);
+    //pthread_mutex_unlock(&mutex_request);
+    //parseRequest(bufCopy, &request_op, &request_key, &request_key2, request_value1, &request_value2, &request_value3);
+    switch(request_op){
         case 0:
             printf("///////////Treating init()///////////////\n");
-            if (init() != 0){
-                perror("Init not succesfull\n");
-            }
-            reply.success = 1;
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
-            printf("Init successful from server\n");
+
             
 
             break;
         case 1:
-            printf("///////////Treating set_value()///////////////\n");
-            if (set_value(request_copy.key, request_copy.value1, request_copy.value2, request_copy.value3) != 0){
-                perror("Set_value not succesfull\n");
-                reply.success = 0;
-            }else{
-            reply.success = 1;
-            }
-            printf("Set value from server\n");
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
-            break;
-        case 2:
-            printf("///////////Treating get_value()///////////////\n");
-            if (get_value(request_copy.key, s_value1, &s_value2, &s_value3) != 0){
-                perror("Get_value not succesfull\n");
-                reply.success = 0;
-            }else{
-            reply.success = 1;
-            strcpy(reply.value1, s_value1);
-            reply.value2 = s_value2;
-            reply.value3 = s_value3;
-            }
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
-            break;
-        case 3:
-            printf("///////////Treating modify_value()///////////////\n");
-            if (modify_value(request_copy.key, request_copy.value1, request_copy.value2, request_copy.value3) == -1){
-                perror("Key does not exist, use set_value instead\n");
-                reply.success = 0;
-            }else{
-            reply.success = 1;
-            }
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
-            break;
-        case 4:
-            printf("///////////Treating delete_key()///////////////\n");
-            if (delete_key(request_copy.key) != 0){
-                perror("Delete_key not succesfull. Key does not exist\n");
-                reply.success = 0;
-            }else{
-            reply.success = 1;
-            }
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
-            break;
-        case 5:
-        printf("///////////Treating exists()///////////////\n");
-            if (exists(request_copy.key) == 0){
-                perror("Key does not exist\n");
-                reply.success = 0;
-            }else{
-            reply.success = 1;
-            }
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
-            break;
-        case 6:
-        printf("///////////Treating copy_key()///////////////\n");
-            if (copy_key(request_copy.key, request_copy.key2) != 0){
-                perror("Copy_key not succesfull\n");
-                reply.success = 0;
-            }else{
-            reply.success = 1;
-            }
-            if(mq_send(queue_cliente, (char *)&reply, sizeof(reply), 0) < 0){
-                perror("Sending not successful\n");
-            }
+        printf("hello\n");
             break;
 
-        default:
-            printf("Error: invalid operation.");
-            break;
-    }
-    mq_close(queue_cliente);
-    mq_unlink(request_copy.q_name);
     printf("Request treated!\n\nCurrent List:\n");
     printList();
     printf("=========================================================\n");
     pthread_exit(NULL);
     
 }
-
-int main(){
+}
+int main(int argc, char *argv[]){
     printf("entered server main\n");
-    struct request request;
-    struct mq_attr attr;
-    attr.mq_msgsize = sizeof(struct request);
-    attr.mq_maxmsg = 10;
-    //concurrency
-    pthread_attr_t thread_attr;
-    pthread_t thid;
-
-    pthread_mutex_init(&rd_mutex, NULL);
-    sem_init(&wrt, 0, 1);
-    readers = 0;
-    
-    //initialize the server queue
-    queue_server = mq_open("/SERVIDOR", O_CREAT|O_RDONLY, 0700, &attr);
-    if (queue_server == -1){
-        perror("Error creating server queue");
-        return 1;
+    if (argc != 2){
+        printf("Usage: %s <server_port>\n", argv[0]);
+        exit(1);
     }
+    int port = atoi(argv[1]);
+    int sd, newsd;
+    socklen_t usersize;
+	int val;
+	int err;
+// sockadd_in is a structure that contains the address of the socket of type IPv4
+        struct sockaddr_in server_addr, client_addr;
+//1.-create a socket for server, AF_INET for IPv4, SOCK_STREAM for TCP, IPPROTO_TCP for TCP | if UDP is wanted, use SOCK_DGRAM
+        sd =  socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (sd < 0) {
+                perror("Error in socket");
+                exit(1);
+        }
 
-    pthread_mutex_init(&mutex_request, NULL);
-    pthread_cond_init(&cond_request, NULL);
-    pthread_attr_init(&thread_attr);
-    pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
+        val = 1;
+// setsockopt() is used to allow the local address to be reused when the server is restarted before the required wait time expires
+        err = setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (char *) &val, sizeof(int));
+        if (err < 0) {
+                perror("Error in option");
+                exit(1);
+        }
+
+
+//2.-bind the socket to the server address, which means that the server will listen to the port 4200, a port is a process that handles specific port
+//bzero() is used to set the server_addr to 0 in order to avoid errors
+        bzero((char *) &server_addr, sizeof(server_addr));
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(port);
+//server_addr.sin_addr.s_addr  means that the server will listen to any IP address that is connected to the server
+        server_addr.sin_addr.s_addr = INADDR_ANY;
+
+        if (bind(sd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
+                perror("Error in bind");
+                exit(1);
+        }
+
+//3.-listen to the socket, SOMAXCONN is the maximum number of connections that can be queued, by default is 128.
+        listen(sd, SOMAXCONN);
     
     while (1){
         printf("Waiting for requests...\n");
-        // mq_receive writes in request
-        if(mq_receive(queue_server, (char *) &request, sizeof(request), 0) < 0){
-            perror("Error receiving requests\n");
-            return -1;
-        }
-        printf("Message received from queue %s\n", request.q_name);
-        
-        if (pthread_create(&thid, &thread_attr, (void *)treat_request, (void *)&request) == 0){
-            pthread_mutex_lock(&mutex_request);
-            while(request_not_copied == 1){
-                pthread_cond_wait(&cond_request, &mutex_request);
+//4.- accept the connection, the server will wait until a client connects to the server, accept returns a new socket descriptor that is used to communicate with the client
+            newsd=accept(sd, (struct sockaddr *)&client_addr, &usersize);
+            if (newsd < 0){
+                    printf("Error en accept");
             }
-            request_not_copied = 1;
-            pthread_mutex_unlock(&mutex_request);
+            printf("Conexion aceptada de IP: %s\nPuerto: %d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+            char buf[MAX];
+            ssize_t bytes_read;
+            while ((bytes_read = readLine(newsd, buf, MAX)) > 0) {
+                    //buf[bytes_read] = '\0';
+                    printf("Received: %s\n", buf);
+                    treat_request(buf);
+                    //strcpy(buf, "Bye!");
+                    //sendMessage(newsd, buf, strlen(buf)+1);
+            }
+            
+            close(newsd);
         }
-        
-    }
+        close (sd);
+    
     return 0;
 }

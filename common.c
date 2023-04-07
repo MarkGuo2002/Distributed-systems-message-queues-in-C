@@ -3,29 +3,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-void parseRequest(char *buf) {
+void parseRequest(char *buf, int *request_op, int *request_key, int *request_key2, char *request_value1, int *request_value2, double *request_value3) {
     //receives a string like: "2,3,5,hello,5,2.5" 6 tokens
     char *token = strtok(buf, ",");
     int count = 0;
     while (token != NULL) {
         switch (count) {
             case 0:
-                request_op = atoi(token);
+                *request_op = atoi(token);
                 break;
             case 1:
-                request_key = atof(token);
+                *request_key = atof(token);
                 break;
             case 2:
-                request_key2 = token[0];
+                *request_key2 = token[0];
                 break;
             case 3:
                 strcpy(request_value1, token);
                 break;
             case 4:
-                request_value2 = atoi(token);
+                *request_value2 = atoi(token);
                 break;
             case 5:
-                request_value3 = atof(token);
+                *request_value3 = atof(token);
                 break;
             default:
                 break;
@@ -34,23 +34,23 @@ void parseRequest(char *buf) {
         count++;
     }
 }
-void parseReply(char *buf) {
+void parseReply(char *buf, int *reply_success, char *reply_value1, int *reply_value2, double *reply_value3) {
     //receives a string like: "2,3.5,a" 3 tokens
     char *token = strtok(buf, ",");
     int count = 0;
     while (token != NULL) {
         switch (count) {
             case 0:
-                reply_success = atoi(token);
+                *reply_success = atoi(token);
                 break;
             case 1:
                 strcpy(reply_value1, token);
                 break;
             case 2:
-                reply_value2 = atoi(token);
+                *reply_value2 = atoi(token);
                 break;
             case 3:
-                reply_value3 = atof(token);
+                *reply_value3 = atof(token);
                 break;
             default:
                 break;

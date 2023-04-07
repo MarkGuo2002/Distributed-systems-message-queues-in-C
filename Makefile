@@ -15,14 +15,14 @@ libclaves.so:
 	ld -shared -o $@ claves.o
 
 servidor:
-	$(CC) $(CFLAGS) -g servidor.c proxy.c $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) -g servidor.c proxy.c lines.c $(LDLIBS) -o $@
 
 cliente:
-	$(CC) $(CFLAGS) -g cliente.c $(LDFLAGS) -lrt -o $@ 
+	$(CC) $(CFLAGS) -g cliente.c lines.c $(LDFLAGS) -lrt -o $@ 
 
  
 runcliente: cliente
-	env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:. ./cliente
+	env IP_TUPLAS=localhost PORT_TUPLAS=4500 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:. ./cliente
 
 #para limpiar los ficheros generados
 clean:

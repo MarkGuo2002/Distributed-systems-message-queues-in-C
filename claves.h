@@ -1,7 +1,7 @@
 // Declaration of variables and functions for a singly linked list
 #ifndef CLAVES_H
 #define CLAVES_H
-#include <mqueue.h>
+
 
 #define MAX 256
 
