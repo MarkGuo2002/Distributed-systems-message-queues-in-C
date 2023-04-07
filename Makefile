@@ -32,7 +32,7 @@ clean:
 .PHONY: clean
 
 
-
+# -g para que genere informacion para depuracion
 # -p para que no de error si ya existe
 # -f para que no pregunte si se quiere sobreescribir
 # -r para que borre directorios no vacios
