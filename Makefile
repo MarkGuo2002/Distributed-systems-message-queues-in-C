@@ -15,10 +15,10 @@ libclaves.so:
 	ld -shared -o $@ claves.o
 
 servidor:
-	$(CC) $(CFLAGS) -g servidor.c proxy.c lines.c $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) -g servidor.c proxy.c lines.c common.c $(LDLIBS) -o $@
 
 cliente:
-	$(CC) $(CFLAGS) -g cliente.c lines.c $(LDFLAGS) -lrt -o $@ 
+	$(CC) $(CFLAGS) -g cliente.c lines.c common.c $(LDFLAGS) -lrt -o $@ 
 
  
 runcliente: cliente

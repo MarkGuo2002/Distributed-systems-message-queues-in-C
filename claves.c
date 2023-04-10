@@ -13,6 +13,12 @@
 #include <errno.h>
 #define MAX 256
 
+char buf[MAX];
+int reply_success;
+char reply_value1;
+int reply_value2;
+double reply_value3;
+
 
 int init(){
     printf("init()\n");
@@ -85,7 +91,7 @@ int init(){
 //void parseRequest(char *buf, int *request_op, int *request_key, int *request_key2, char *request_value1, int *request_value2, double *request_value3) {
 //receives a string like: "2,3,5,hello,5,2.5" 6 tokens
         char buf[MAX];
-        strcpy(buf, "1");   
+        strcpy(buf, "0");   
         if (sendMessage(sd, buf, sizeof(buf)+1) < 0) {
             perror("Error sending message");
             exit(1);
@@ -97,10 +103,17 @@ int init(){
     //        exit(1);
         //}
         //printf("recibido: %s\n", buf);
-        
+        //receive reply from, the server
+        if (recvMessage(sd, buf, MAX) < 0) {
+            perror("Error receiving message"); 
+        }
 
         close(sd);
-        
+        // now inside buf contains the reply from the server sth like "1,3,a,5"?
+        parseReply(buf, &reply_success, &reply_value1, &reply_value2, &reply_value3);
+        if (reply_success == 1){
+            return 1;
+        }
         return(0);
 
     }

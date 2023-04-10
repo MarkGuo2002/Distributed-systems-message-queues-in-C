@@ -21,8 +21,8 @@ void deleteList(){
 }
 
 int init(){
-    //writer
-    sem_wait(&wrt);
+     //writer
+    //sem_wait(&wrt);
     if (list != NULL){
         deleteList();
     }
@@ -31,7 +31,7 @@ int init(){
     list->head = NULL;
     list->tail = NULL;
     list->size = 0;
-    sem_post(&wrt);
+    //sem_post(&wrt);
 	return 0;
 }
 

@@ -3,12 +3,6 @@
 #define MAX 256
 
 
-
-int reply_success;
-char reply_value1[MAX];
-int reply_value2;
-double reply_value3;
-
 void parseRequest(char *buf, int *request_op, int *request_key, int *request_key2, char *request_value1, int *request_value2, double *request_value3);
 void parseReply(char *buf, int *reply_success, char *reply_value1, int *reply_value2, double *reply_value3);
 
