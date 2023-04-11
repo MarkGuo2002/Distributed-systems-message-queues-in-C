@@ -44,7 +44,7 @@ int set_value(int key, char* value1, int value2, double value3){
         return -1;
     }
     // case when the key already exists? ERROR
-    if (exists(key) == 1){
+    if (exist(key) == 1){
         printf("Key already exists, use modify_value to modify its values.");
         return -1;
     }
@@ -185,7 +185,7 @@ int delete_key(int key){
 
 }
 
-int exists(int key){
+int exist(int key){
     //reader
     pthread_mutex_lock(&rd_mutex);
     readers++;
@@ -224,8 +224,8 @@ int exists(int key){
 int copy_key(int key1, int key2){
 //writer but no need to care because all the funtions that it calls are already implementing the writer.
 //Create and insert key2 with the values of key1, if key1 doesn't exist, return -1. if key2 exists, modify its values. return 0 on success.
-    int existKey1 = exists(key1);
-    int existKey2 = exists(key2);
+    int existKey1 = exist(key1);
+    int existKey2 = exist(key2);
     if (existKey1 == 0){
         sem_post(&wrt);
         return -1;

@@ -139,7 +139,7 @@ int delete_key(int key){
     return 0;
     }
 
-int exists(int key){
+int exist(int key){
     //return 1 if key exists, 0 if it doesn't and -1 if there's an error
     return 1;
     }

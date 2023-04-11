@@ -91,6 +91,11 @@ void treat_request(char *buf){
 }
 int main(int argc, char *argv[]){
     printf("entered server main\n");
+    if(init() != 0){
+        perror("Error in init()");
+        exit(1);
+    }
+    printf("init() success\n");
     if (argc != 2){
         printf("Usage: %s <server_port>\n", argv[0]);
         exit(1);
