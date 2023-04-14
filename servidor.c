@@ -37,31 +37,28 @@ int init(){
 
 int set_value(int key, char* value1, int value2, double value3){
     //writer
-
+    printf("value1: %s\n", value1);
 	//Checking: strlen excluye \0
     if (strlen(value1) > 255){
-        printf("value1 is too long, max length is 255 characters.");
+        printf("value1 is too long, max length is 255 characters.\n");
         return -1;
     }
+    printf("key: %d\n", key);
     // case when the key already exists? ERROR
     if (exist(key) == 1){
-        printf("Key already exists, use modify_value to modify its values.");
+        printf("Key already exists, use modify_value to modify its values.\n");
         return -1;
     }
-    
-
 	//define the node and allocate memory for it
 	struct Node *nodeptr;
 	nodeptr = (struct Node *) malloc(sizeof(struct Node));
-	
 	
     nodeptr->key = key;
 	strcpy(nodeptr->value1, value1);
     nodeptr->value2 = value2;
     nodeptr->value3 = value3;
-	
 	//if the list is empty, it's just a head insertion
-    sem_wait(&wrt);
+    //sem_wait(&wrt);
 	if (list->size == 0){
 		//make node.next = null and *l(current node pointer) = current node
 		nodeptr->next = NULL;
@@ -76,21 +73,22 @@ int set_value(int key, char* value1, int value2, double value3){
         //set the new tail's next to null
         list->tail->next = NULL;
         list->size += 1;
-	}
-    sem_post(&wrt);
+    }
+    //sem_post(&wrt);
 	return(0);
 }
 
 int get_value(int key, char* value1, int *value2, double *value3){
     //reader
     //lock the reader mutex to increment the number of readers
-    pthread_mutex_lock(&rd_mutex);
+    
+    /*pthread_mutex_lock(&rd_mutex);
     readers++;
     //case first reader enters to read, lock the writer.
     if (readers == 1){
         sem_wait(&wrt);
     }
-    pthread_mutex_unlock(&rd_mutex);
+    pthread_mutex_unlock(&rd_mutex);*/
 
 	struct Node *aux = list->head;
 	while (aux != NULL){
@@ -111,13 +109,14 @@ int get_value(int key, char* value1, int *value2, double *value3){
 		aux = aux->next;
 	}
     //lock the reader mutex to decrement the number of readers
-    pthread_mutex_lock(&rd_mutex);
+   /* pthread_mutex_lock(&rd_mutex);
     readers--;
     //when the last reader leaves, let the writer in.
     if (readers == 0){
         sem_post(&wrt);
     }
     pthread_mutex_unlock(&rd_mutex);
+    */
     //if the key doesn't exist, return -1
 	return -1;
 }
@@ -125,7 +124,7 @@ int get_value(int key, char* value1, int *value2, double *value3){
 // En este se le pasan  valores a cuales queremos modificar
 int modify_value(int key, char* value1, int value2, double value3){
     //writer
-    sem_wait(&wrt);
+ //   sem_wait(&wrt);
     struct Node *aux = list->head;
 	while (aux != NULL){
 		if (aux->key == key){
@@ -137,7 +136,7 @@ int modify_value(int key, char* value1, int value2, double value3){
 		}
 		aux = aux->next;
 	}
-    sem_post(&wrt);
+ //   sem_post(&wrt);
     //if the key doesn't exist, return -1
 	return -1;
 }
@@ -146,7 +145,7 @@ int modify_value(int key, char* value1, int value2, double value3){
 int delete_key(int key){
     //writer
     struct Node *prev = NULL; //auxiliar pointer to the previous node of aux
-    sem_wait(&wrt);
+ //   sem_wait(&wrt);
     struct Node *aux = list->head; //auxiliar pointer to the head of the list
     while (aux != NULL){
         if (aux->key == key){
@@ -179,7 +178,7 @@ int delete_key(int key){
         prev = aux;
         aux = aux->next;
     }
-    sem_post(&wrt);
+  //  sem_post(&wrt);
     //if the key doesn't exist, return -1
     return -1;
 
@@ -187,36 +186,40 @@ int delete_key(int key){
 
 int exist(int key){
     //reader
-    pthread_mutex_lock(&rd_mutex);
-    readers++;
+   // pthread_mutex_lock(&rd_mutex);
+ /*   readers++;
     //case first reader enters to read, lock the writer.
     if (readers == 1){
         sem_wait(&wrt);
     }
     pthread_mutex_unlock(&rd_mutex);
 
+    */
+
     struct Node *aux = list->head;
     while (aux != NULL){
         if (aux->key == key){
-            pthread_mutex_lock(&rd_mutex);
-            readers--;
+           // pthread_mutex_lock(&rd_mutex);
+          //  readers--;
             //when the last reader leaves, let the writer in.
-            if (readers == 0){
-                sem_post(&wrt);
-            }
-            pthread_mutex_unlock(&rd_mutex);
+           // if (readers == 0){
+               // sem_post(&wrt);
+            
+           // pthread_mutex_unlock(&rd_mutex);
             return 1;
         }
         aux = aux->next;
     }
     //if the key doesn't exist, return 0
-    pthread_mutex_lock(&rd_mutex);
+ /*   pthread_mutex_lock(&rd_mutex);
     readers--;
     //case first reader enters to read, lock the writer.
     if (readers == 0){
         sem_post(&wrt);
     }
     pthread_mutex_unlock(&rd_mutex);
+
+*/
     return 0;
 
 }
@@ -227,7 +230,6 @@ int copy_key(int key1, int key2){
     int existKey1 = exist(key1);
     int existKey2 = exist(key2);
     if (existKey1 == 0){
-        sem_post(&wrt);
         return -1;
     }
     else{

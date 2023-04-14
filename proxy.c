@@ -27,21 +27,8 @@ int err;
 struct sockaddr_in server_addr, client_addr;
 
 
-//buffer for sending the reply
-char bufReply[MAX];
 
-//list
-char s_value1[MAX];
-int s_value2;
-double s_value3;
 
-//parser parameters
-int request_op;
-int request_key;
-int request_key2;
-char request_value1[MAX];
-int request_value2;
-double request_value3;
 
 //pthread_mutex_t mutex_request;
 //int request_not_copied = 1;
@@ -49,26 +36,44 @@ double request_value3;
 
 void treat_request(char *buf){
     char bufCopy[MAX];
+    strcpy(bufCopy, buf);
+    
+    
+    //parser parameters
+    int request_op;
+    int request_key;
+    int request_key2;
+    char request_value1[MAX];
+    int request_value2;
+    double request_value3;
+    
+    //buffer for sending the reply
+    char bufReply[MAX];
+
+    //list
+    char s_value1[MAX];
+    int s_value2;
+    double s_value3;
+
     //pthread_mutex_lock(&mutex_request);
     //request_copy = *request;
-    strcpy(bufCopy, buf);
     //request_not_copied = 0;
     //pthread_cond_signal(&cond_request);
     //pthread_mutex_unlock(&mutex_request);
     parseRequest(bufCopy, &request_op, &request_key, &request_key2, request_value1, &request_value2, &request_value3);
+    printf("request_op: %d, request_key: %d, request_key2: %d, request_value1: %s, request_value2: %d, request_value3: %f\n\n", request_op, request_key, request_key2, request_value1, request_value2, request_value3);
     switch(request_op){
         case 0:
             printf("///////////Treating init()///////////////\n");
             if (init() != 0){
-                printf("hello");
                 perror("Error in init()");
-                strcpy(bufReply, "0");
+                strcpy(bufReply, "-1");
             }
             else{
                 printf("init() success\n");
-                strcpy(bufReply, "1");
+                strcpy(bufReply, "0");
             }
-            printf("sending reply: %s", bufReply);
+            printf("sending reply: %s\n", bufReply);
             //send reply
             if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
                 perror("Error sending message");
@@ -77,16 +82,129 @@ void treat_request(char *buf){
 
             break;
         case 1:
-            printf("hello\n");
+            printf("//////////Treating set_value()///////////////\n");
+            if (set_value(request_key, request_value1, request_value2, request_value3) != 0){
+                perror("Error in set_value()");
+                strcpy(bufReply, "-1");
+            }
+            else{
+                printf("set_value() success\n");
+                strcpy(bufReply, "0");
+            }
+            printf("sending reply: %s\n", bufReply);
+            //send reply
+            if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
+                perror("Error sending message");
+                exit(1);
+            }
+            break;
+        
+        case 2:
+            printf("//////////Treating get_value()///////////////\n");
+            if (get_value(request_key,s_value1,&s_value2,&s_value3) != 0){
+                perror("Error in get_value()");
+                strcpy(bufReply, "-1");
+            }
+            else{
+                printf("get_value() success\n");
+                sprintf(bufReply, "0,%s,%d,%f", s_value1, s_value2, s_value3);
+            }
+            printf("sending reply: %s\n", bufReply);
+            //send reply
+            if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
+                perror("Error sending message");
+                exit(1);
+            }
+            break;
+        case 3:
+            printf("//////////Treating modify_value()///////////////\n");
+            if (modify_value(request_key,request_value1, request_value2, request_value3) != 0){
+                perror("Error in modify_value()");
+                strcpy(bufReply, "-1");
+
+            }
+            else{
+                printf("modify_value() success\n");
+                sprintf(bufReply, "0");
+            }
+            printf("sending reply: %s\n", bufReply);
+            //send reply
+            if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
+                perror("Error sending message");
+                exit(1);
+            }
+            break;
+        case 4:
+            printf("//////////Treating delete_key()///////////////\n");
+            if (delete_key(request_key) != 0){
+                perror("Error in delete_key()");
+                strcpy(bufReply, "-1");
+
+            }
+            else{
+                printf("delete_key() success\n");
+                sprintf(bufReply, "0");
+            }
+            printf("sending reply: %s\n", bufReply);
+            //send reply
+            if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
+                perror("Error sending message");
+                exit(1);
+            }
+            break;
+
+        case 5:
+            printf("//////////Treating exist()///////////////\n");
+            int result = exist(request_key);
+            if (result == -1){
+                perror("Error in exist()");
+                strcpy(bufReply, "-1");
+
+            }
+            else if(result == 1){
+                printf("key exists\n");
+                sprintf(bufReply, "1");
+            }
+            else{
+                printf("key does not exist\n");
+                sprintf(bufReply, "0");
+            }
+            printf("sending reply: %s\n", bufReply);
+            //send reply
+            if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
+                perror("Error sending message");
+                exit(1);
+            }
+            break;
+
+        case 6:
+            printf("//////////Treating copy_key()///////////////\n");
+    
+            if (copy_key(request_key, request_key2) != 0){
+                perror("Error in copy_key()");
+                strcpy(bufReply, "-1");
+
+            }
+            else{
+                printf("copy_key() success\n");
+                sprintf(bufReply, "0");
+            }
+            printf("sending reply: %s\n", bufReply);
+            //send reply
+            if (sendMessage(newsd, bufReply, sizeof(bufReply)+1) < 0) {
+                perror("Error sending message");
+                exit(1);
+            }
             break;
         
         default:
             printf("Error: invalid operation.");
             break; 
         }
+    close(newsd);
     printf("Request treated!\n\nCurrent List:\n");
     printList();
-    printf("=========================================================\n");
+    printf("=========================================================\n\n\n");
    // pthread_exit(NULL);
 }
 int main(int argc, char *argv[]){
@@ -139,7 +257,7 @@ int main(int argc, char *argv[]){
     //4.- accept the connection, the server will wait until a client connects to the server, accept returns a new socket descriptor that is used to communicate with the client
         newsd=accept(sd, (struct sockaddr *)&client_addr, &usersize);
         if (newsd < 0){
-                printf("Error en accept");
+                printf("Error in accept");
         }
         printf("Conexion aceptada de IP: %s\nPuerto: %d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         char buf[MAX];
@@ -151,8 +269,8 @@ int main(int argc, char *argv[]){
                 //strcpy(buf, "Bye!");
                 //sendMessage(newsd, buf, strlen(buf)+1);
         }
-        
         close(newsd);
+
     }
     close (sd);
 
